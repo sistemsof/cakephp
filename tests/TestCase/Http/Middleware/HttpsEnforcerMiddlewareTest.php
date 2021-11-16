@@ -62,6 +62,40 @@ class HttpsEnforcerMiddlewareTest extends TestCase
         $this->assertSame('success', (string)$result->getBody());
     }
 
+    public function testHstsResponse(): void
+    {
+        $uri = new Uri('https://localhost/foo');
+        $request = new ServerRequest();
+        $request = $request->withUri($uri);
+
+        $handler = new TestRequestHandler(function ($req) {
+            return new Response(['body' => 'success']);
+        });
+
+        $middleware = new HttpsEnforcerMiddleware(['hsts' => ['maxAge' => 63072000]]);
+
+        $result = $middleware->process($request, $handler);
+        $this->assertInstanceOf(Response::class, $result);
+        $this->assertSame('max-age=63072000', $result->getHeaderLine('strict-transport-security'));
+    }
+
+    public function testHstsResponseWithDirectives(): void
+    {
+        $uri = new Uri('https://localhost/foo');
+        $request = new ServerRequest();
+        $request = $request->withUri($uri);
+
+        $handler = new TestRequestHandler(function ($req) {
+            return new Response(['body' => 'success']);
+        });
+
+        $middleware = new HttpsEnforcerMiddleware(['hsts' => ['maxAge' => 63072000, 'includeSubDomains' => true, 'preload' => true]]);
+
+        $result = $middleware->process($request, $handler);
+        $this->assertInstanceOf(Response::class, $result);
+        $this->assertSame('max-age=63072000; includeSubDomains; preload', $result->getHeaderLine('strict-transport-security'));
+    }
+
     public function testRedirect(): void
     {
         $uri = new Uri('http://localhost/foo');
